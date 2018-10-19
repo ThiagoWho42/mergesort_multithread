@@ -12,16 +12,13 @@ struct Params
     int depth;
 };
 
-// only used for synchronizing stdout from overlap.
+// Usado para sincronizar stdout do overlap.
 pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 
-// forward declare our thread proc
 void *merge_sort_thread(void *pv);
 
 
-// a simple merge algorithm. there are *several* more efficient ways
-//  of doing this, but the purpose of this exercise is to establish
-//  merge-threading, so we stick with simple for now.
+// Declaraçao da função merge,usando o algoritmo de ordenação mergesort.
 void merge(int *start, int *mid, int *end)
 {
     int *res = malloc((end - start)*sizeof(*res));
@@ -33,12 +30,12 @@ void merge(int *start, int *mid, int *end)
     while (lhs != mid)
         *dst++ = *lhs++;
 
-    // copy results
+    // Copiando resultados
     memcpy(start, res, (rhs - start) * sizeof *res);
     free(res);
 }
 
-// our multi-threaded entry point.
+// Jogando a ordenação no multi-thread
 void merge_sort_mt(int *start, size_t len, int depth)
 {
     if (len < 2)
@@ -55,29 +52,29 @@ void merge_sort_mt(int *start, size_t len, int depth)
         pthread_t thrd;
 
         pthread_mutex_lock(&mtx);
-        printf("Starting subthread...\n");
+        printf("Iniciando a subthread...\n");
         pthread_mutex_unlock(&mtx);
 
-        // create our thread
+        // Criação da threads
         pthread_create(&thrd, NULL, merge_sort_thread, &params);
 
-        // recurse into our top-end parition
+        //Faz  função voltar ao topo 
         merge_sort_mt(start+len/2, len-len/2, depth/2);
 
-        // join on the launched thread
+        // Lança a thread
         pthread_join(thrd, NULL);
 
         pthread_mutex_lock(&mtx);
-        printf("Finished subthread.\n");
+        printf("Finalizando a subthread.\n");
         pthread_mutex_unlock(&mtx);
     }
 
-    // merge the partitions.
+    // Particionando o array usando o merge.
     merge(start, start+len/2, start+len);
 }
 
-// our thread-proc that invokes merge_sort. this just passes the
-//  given parameters off to our merge_sort algorithm
+// o thread-proc chama o merge_sort. E passa para ele apenas
+//  dados por parametro usando o algoritmo do merge_sort
 void *merge_sort_thread(void *pv)
 {
     struct Params *params = pv;
@@ -85,29 +82,29 @@ void *merge_sort_thread(void *pv)
     return pv;
 }
 
-// public-facing api
+// API publica para o uso do merge_sort
 void merge_sort(int *start, size_t len)
 {
-    merge_sort_mt(start, len, 4); // 4 is a nice number, will use 7 threads.
+    merge_sort_mt(start, len, 4);
 }
 
 int main()
 {
-    static const unsigned int N = 2048;
+    static const unsigned int N = 200048;
     int *data = malloc(N * sizeof(*data));
     unsigned int i;
 
     srand((unsigned)time(0));
     for (i=0; i<N; ++i)
     {
-        data[i] = rand() % 1024;
+        data[i] = rand() % 100024;
         printf("%4d ", data[i]);
         if ((i+1)%8 == 0)
             printf("\n");
     }
     printf("\n");
 
-    // invoke our multi-threaded merge-sort
+    // Chama a multi-threds com o merge-sort
     merge_sort(data, N);
     for (i=0; i<N; ++i)
     {
